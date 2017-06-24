@@ -1,6 +1,6 @@
 # graph-grammar
 
-A Clojure library designed to ... well, that part is up to you.
+Implementation of generative graph grammar following joris dormans' [Adventures in Level Design](http://www.jorisdormans.nl/pdf/dormans2010_AdventuresInLevelDesign.pdf), in clojure.
 
 ## Usage
 
