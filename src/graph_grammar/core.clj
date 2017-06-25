@@ -23,26 +23,42 @@
 
 
 (def rules [
-            [(-> (l/digraph )
+            ;; initial graph
+            [
+             (-> (l/digraph )
                  (l/add-nodes [:start 1]))
              (-> (l/digraph [[:entrance 1] [:chain 2]]
                             [[:chain 2] [:gate 3]]
                             [[:gate 3] [:mini-boss 4]]
-                            [[:mini-boss 4] [:chain-fork 120]]
-                            [[:chain-fork 120] [:item-quest 5]]
+                            [[:mini-boss 4] [:item-quest 5]]
                             [[:item-quest 5] [:test-item 6]]
                             [[:test-item 6] [:chain-final 7]]
                             [[:chain-final 7] [:goal 8]]))]
-            [(-> (l/digraph )
-                 (l/add-edges [[:chain 1] [:gate 2]]))
-             (-> (l/digraph [[:chain-linear 1] [:chain-linear 3]]
-                            [[:chain-linear 3] [:chain-linear 2]]))]
+
+            ;; make linear chain
             [(-> (l/digraph )
                  (l/add-edges [[:chain 1] [:gate 2]]))
              (-> (l/digraph [[:chain-linear 1] [:chain-linear 3]]
                             [[:chain-linear 3] [:chain-linear 2]]))]
 
+            ;; make final chain
             [(-> (l/digraph )
+                 (l/add-edges [[:chain-final 0] [:goal 10]]))
+
+             (-> (l/digraph [[:chain 0] [:test 1]]
+                            [[:chain 0] [:gate 5]]
+                            
+                            [[:test 1] [:hold 2]]
+                            [[:test 1] [:key-final 3]]
+                            [[:key-final 3] [:lock-final 4]]
+                            
+                            
+                            [[:gate 5] [:lock-final 4]]
+                            [[:chain 0] [:hold 6]]
+                            [[:lock-final 4] [:boss-level 8]]
+                            [[:boss-level 8] [:goal 10]]))]
+
+            #_[(-> (l/digraph )
                  (l/add-edges [[:chain-fork 1] [:item-quest 2]]))
              (-> (l/digraph [[:chain-fork 1] [:chain 3]]
                             [[:chain 3] [:chain-join 4]]
@@ -156,4 +172,4 @@
     (lio/view
      graph
      
-     :node-label #(str (name (or (a/attr graph % :type) :unknown)) " " (ids %)))))
+     :node-label #(str (name (or  (a/attr graph % :type) :unknown)) " " (ids %)))))
