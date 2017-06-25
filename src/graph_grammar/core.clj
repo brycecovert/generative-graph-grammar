@@ -22,9 +22,11 @@
                (add-typed-node :start )))
 
 
-(def rules [
-            ;; initial graph
-            [
+(def non-terminal-nodes
+  #{:chain :gate :chain-linear :chain-parallel :hook :fork :start :chain-final})
+
+(def initial-step
+  [
              (-> (l/digraph )
                  (l/add-nodes [:start 1]))
              (-> (l/digraph [[:entrance 1] [:chain 2]]
@@ -33,7 +35,12 @@
                             [[:mini-boss 4] [:item-quest 5]]
                             [[:item-quest 5] [:test-item 6]]
                             [[:test-item 6] [:chain-final 7]]
-                            [[:chain-final 7] [:goal 8]]))]
+                            [[:chain-final 7] [:goal 8]]))])
+
+(def rules [
+            ;; initial graph
+            initial-step
+            
 
             ;; make linear chain
             [(-> (l/digraph )
@@ -133,15 +140,14 @@
             [(-> (l/digraph )
                  (l/add-nodes [:hook 1]))
              (-> (l/digraph)
-                 (l/add-edges [[:hook 1] [:test 2]]
-                              [[:test 2] [:item-bonus 2]]
+                 (l/add-edges [[:test 1] [:item-bonus 3]]
                               ))]
 
             [(-> (l/digraph )
                  (l/add-nodes [:hook 1]))
              (-> (l/digraph)
-                 (l/add-edges [[:hook 1] [:test-secret 2]]
-                              [[:test-secret 2] [:item-bonus 2]]
+                 (l/add-edges 
+                              [[:test-secret 1] [:item-bonus 3]]
                               ))]
 
 
@@ -254,18 +260,24 @@
    graph
    (distinct-paths graph)))
 
-
-(defn foo
-  "I don't do a whole lot."
-  []
-  (let [graph (reduce
-    apply-rule
-    
-    initial
-    rules)
-        
-        ids (into {} (map vector  (alg/bf-traverse graph (root graph)) (range)))]
+(defn view [graph]
+  (let [ids (into {} (map vector  (alg/bf-traverse graph (root graph)) (range)))]
     (lio/view
      graph
-     
      :node-label #(str (name (or  (a/attr graph % :type) :unknown)) " " (ids %)))))
+
+(defn make-graph []
+  (loop [graph (apply-rule initial initial-step)
+         shuffled-rules (shuffle rules)]
+    (if (every? (complement non-terminal-nodes) (map #(a/attr graph % :type) (l/nodes graph)))
+      graph
+      (recur (loop [graph graph
+                    [rule & rules] shuffled-rules]
+               (if rule
+                 (if (not= graph (apply-rule graph rule))
+                   (apply-rule graph rule)
+                   (recur graph rules))
+                 graph))
+             (shuffle rules)))))
+
+
