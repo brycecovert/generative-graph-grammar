@@ -72,6 +72,16 @@
              (-> (l/digraph)
                  (l/add-nodes [:test-secret :start ]))]
 
+            [(-> (l/digraph )
+                 (l/add-edges [[:chain-linear :start] [:chain-linear :end]]))
+             (-> (l/digraph)
+                 (l/add-edges [[:key :start ] [:lock :end]]))]
+
+            [(-> (l/digraph )
+                 (l/add-edges [[:chain-linear :start] [:chain-linear :end]]))
+             (-> (l/digraph)
+                 (l/add-edges [[:key :start ] [:lock :middle]]
+                              [[:lock :middle ] [:chain-linear :end]]))]
 
             ;; make final chain
             [(-> (l/digraph )
@@ -80,13 +90,13 @@
              (-> (l/digraph [[:chain 0] [:test 1]]
                             [[:chain 0] [:gate 5]]
                             
-                            [[:test 1] [:hold 2]]
+                            [[:test 1] [:hook 2]]
                             [[:test 1] [:key-final 3]]
                             [[:key-final 3] [:lock-final 4]]
                             
                             
                             [[:gate 5] [:lock-final 4]]
-                            [[:chain 0] [:hold 6]]
+                            [[:chain 0] [:hook 6]]
                             [[:lock-final 4] [:boss-level 8]]
                             [[:boss-level 8] [:goal 10]]))]
 
@@ -95,6 +105,53 @@
                  (l/add-edges [[:chain :start] [:gate :end]]))
              (-> (l/digraph)
                  (l/add-edges [[:chain-parallel :start] [:gate :end]]))]
+
+            [(-> (l/digraph )
+                 (l/add-edges [[:chain-parallel :start] [:gate :end]]))
+             (-> (l/digraph)
+                 (l/add-edges [[:fork :start] [:key-multi 1]]
+                              [[:fork :start] [:key-multi 2]]
+                              [[:fork :start] [:key-multi 3]]
+                              [[:key-multi 1] [:lock-multi :end]]
+                              [[:key-multi 2] [:lock-multi :end]]
+                              [[:key-multi 3] [:lock-multi :end]]))]
+
+            [(-> (l/digraph )
+                 (l/add-edges [[:fork :start] [:key-multi :key]]))
+             (-> (l/digraph)
+                 (l/add-edges [[:fork :start] [:key 1]]
+                              [[:key 1] [:lock 2]]
+                              [[:lock 2] [:hook 3]]
+                              [[:lock 2] [:key-multi :key]]))]
+
+            [(-> (l/digraph )
+                 (l/add-nodes [:hook 1]))
+             (-> (l/digraph)
+                 (l/add-nodes [:nothing 1] 
+                              ))]
+
+            [(-> (l/digraph )
+                 (l/add-nodes [:hook 1]))
+             (-> (l/digraph)
+                 (l/add-edges [[:hook 1] [:test 2]]
+                              [[:test 2] [:item-bonus 2]]
+                              ))]
+
+            [(-> (l/digraph )
+                 (l/add-nodes [:hook 1]))
+             (-> (l/digraph)
+                 (l/add-edges [[:hook 1] [:test-secret 2]]
+                              [[:test-secret 2] [:item-bonus 2]]
+                              ))]
+
+
+            ;; whatever the fork->h, fork->h thing is, not supportedh yet
+            [(-> (l/digraph )
+                 (l/add-nodes [:fork 1]))
+             (-> (l/digraph)
+                 (l/add-nodes [:nothing 1]))]
+
+            
 
             #_[(-> (l/digraph )
                  (l/add-edges [[:chain-fork 1] [:item-quest 2]]))
@@ -189,8 +246,9 @@
                                   (l/nodes output))]
          (-> graph
              (add-nodes-from-output-graph output target-ids)
-             (add-edges-from-output-graph output target-ids)
+             
              (remove-edges-from-input input target-ids)
+             (add-edges-from-output-graph output target-ids)
              (add-edges-from-old-nodes output target-ids original-graph)))
        graph))
    graph

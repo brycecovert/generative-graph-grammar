@@ -75,6 +75,21 @@
                (apply-rule start->end==>start->added->end)
                ->type-paths)
            )))
+    (testing "replacing middle should preserve edge"
+      (is (=
+           [[:start :replaced :end]]
+           (-> (l/digraph)
+               (add-typed-node :start 1)
+               (add-typed-node :middle 2)
+               (add-typed-node :end 3)
+               (l/add-edges [1 2] [2 3])
+               (apply-rule [(-> (l/digraph)
+                                (l/add-edges [[:middle 2] [:end 3]]))
+                            (-> (l/digraph)
+                                (l/add-edges [[:replaced 2] [:end 3]]))])
+               
+               ->type-paths)
+           )))
 
     (testing "original incoming edges preserved"
       (is (=
