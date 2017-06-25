@@ -70,9 +70,7 @@
             [(-> (l/digraph )
                  (l/add-nodes [:chain-linear :start]))
              (-> (l/digraph)
-                 (l/add-nodes [:test-secret :start ]
-                              
-                             ))]
+                 (l/add-nodes [:test-secret :start ]))]
 
 
             ;; make final chain
@@ -91,6 +89,12 @@
                             [[:chain 0] [:hold 6]]
                             [[:lock-final 4] [:boss-level 8]]
                             [[:boss-level 8] [:goal 10]]))]
+
+            ;; parallel chain
+            [(-> (l/digraph )
+                 (l/add-edges [[:chain :start] [:gate :end]]))
+             (-> (l/digraph)
+                 (l/add-edges [[:chain-parallel :start] [:gate :end]]))]
 
             #_[(-> (l/digraph )
                  (l/add-edges [[:chain-fork 1] [:item-quest 2]]))
