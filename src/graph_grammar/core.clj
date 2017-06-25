@@ -41,6 +41,40 @@
              (-> (l/digraph [[:chain-linear 1] [:chain-linear 3]]
                             [[:chain-linear 3] [:chain-linear 2]]))]
 
+            [(-> (l/digraph )
+                 (l/add-edges [[:chain :start] [:gate :end]]))
+             (-> (l/digraph [[:chain-linear :start] [:chain-linear 1]]
+                            [[:chain-linear 1] [:chain-linear 2]]
+                            [[:chain-linear 2] [:chain-linear :end]]))]
+
+            [(-> (l/digraph )
+                 (l/add-edges [[:chain :start] [:gate :end]]))
+             (-> (l/digraph [[:chain-linear :start] [:chain-linear 1]]
+                            [[:chain-linear 1] [:chain-linear 2]]
+                            [[:chain-linear 2] [:chain-linear 3]]
+                            [[:chain-linear 3] [:chain-linear :end]]))]
+
+            [(-> (l/digraph )
+                 (l/add-nodes [:chain-linear :start]))
+             (-> (l/digraph)
+                 (l/add-nodes [:test :start]))]
+
+            [(-> (l/digraph )
+                 (l/add-nodes [:chain-linear :start]))
+             (-> (l/digraph)
+                 (l/add-edges [[:test :start ] [:test 1]]
+                              [[:test 1] [:test 2]]
+                              [[:test 2] [:item-bonus 3]]))]
+
+            
+            [(-> (l/digraph )
+                 (l/add-nodes [:chain-linear :start]))
+             (-> (l/digraph)
+                 (l/add-nodes [:test-secret :start ]
+                              
+                             ))]
+
+
             ;; make final chain
             [(-> (l/digraph )
                  (l/add-edges [[:chain-final 0] [:goal 10]]))
