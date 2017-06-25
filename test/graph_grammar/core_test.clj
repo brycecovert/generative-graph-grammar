@@ -11,7 +11,7 @@
   [(-> (l/digraph )
        (l/add-nodes [:start 1]))
    (-> (l/digraph )
-       (l/add-edges [[:start 1] [:replaced 1]]))])
+       (l/add-nodes [:replaced 1]))])
 
 (def start->end==>start->added->end
   [(-> (l/digraph )
@@ -41,13 +41,28 @@
 
 (deftest a-test
   (testing "applying rules"
+    (testing "root node"
+      (is (=
+           1
+           (-> (l/digraph)
+               (add-typed-node :start 1)
+               (root)
+               ))))
+    (testing "distinct paths"
+      (is (=
+           [[1]]
+           (-> (l/digraph)
+               (add-typed-node :start 1)
+               (distinct-paths)
+               ))))
     (testing "single replacement"
-      #_(is (=
-           [:start]
+      (is (=
+           [[:replaced]]
            (-> (l/digraph)
                (add-typed-node :start 1)
                (apply-rule start==>replaced)
                ->type-paths)
+
            )))
 
     (testing "edge replacement"
