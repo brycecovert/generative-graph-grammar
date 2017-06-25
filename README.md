@@ -4,7 +4,8 @@ Implementation of generative graph grammar following joris dormans' [Adventures 
 
 ## Usage
 
-FIXME
+You can generate a single level by running `lein run`. You should get nothing like this:
+![Example level](https://raw.githubusercontent.com/brycecovert/generative-graph-grammar/master/doc/example-level.png)
 
 ## License
 
