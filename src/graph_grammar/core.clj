@@ -23,150 +23,114 @@
 
 
 (def non-terminal-nodes
-  #{:chain :gate :chain-linear :chain-parallel :hook :fork :start :chain-final})
+  #{#_:gate :chain-linear :chain-parallel :chain :hook :fork :start :chain-final :get-spell-component})
 
 (def initial-step
   [
-             (-> (l/digraph )
-                 (l/add-nodes [:start 1]))
-             (-> (l/digraph [[:entrance 1] [:chain 2]]
-                            [[:chain 2] [:gate 3]]
-                            [[:gate 3] [:mini-boss 4]]
-                            [[:mini-boss 4] [:item-quest 5]]
-                            [[:item-quest 5] [:test-item 6]]
-                            [[:test-item 6] [:chain-final 7]]
-                            [[:chain-final 7] [:goal 8]]))])
+   (-> (l/digraph )
+       (l/add-nodes [:start 1]))
+   (-> (l/digraph [[:chain 1] [:gate 2]]
+                  [[:gate 2] [:chain 3]]
+                  [[:chain 3] [:gate 4]]
+                  [[:gate 4] [:chain 5]]
+                  [[:chain 5] [:gate 6]]
+                  [[:gate 6] [:end 7]]))])
 
-(def rules [
-            ;; initial graph
-            initial-step
-            
+(def rules (-> [
+                ;; initial graph
+                initial-step
+                
 
-            ;; make linear chain
-            [(-> (l/digraph )
-                 (l/add-edges [[:chain 1] [:gate 2]]))
-             (-> (l/digraph [[:chain-linear 1] [:chain-linear 3]]
-                            [[:chain-linear 3] [:chain-linear 2]]))]
+                ;; make linear chain
+                [(-> (l/digraph )
+                     (l/add-edges [[:chain :start] [:gate :end]]))
+                 (-> (l/digraph [[:chain-linear :start] [:chain-linear 2]]
+                                [[:chain-linear 2] [:chain-linear :end]]))]
 
-            [(-> (l/digraph )
-                 (l/add-edges [[:chain :start] [:gate :end]]))
-             (-> (l/digraph [[:chain-linear :start] [:chain-linear 1]]
-                            [[:chain-linear 1] [:chain-linear 2]]
-                            [[:chain-linear 2] [:chain-linear :end]]))]
+                [(-> (l/digraph )
+                     (l/add-edges [[:chain :start] [:gate :end]]))
+                 (-> (l/digraph [[:chain-linear :start] [:chain-linear 2]]
+                                [[:chain-linear 2] [:chain-linear 3]]
+                                [[:chain-linear 3] [:chain-linear :end]]))]
 
-            [(-> (l/digraph )
-                 (l/add-edges [[:chain :start] [:gate :end]]))
-             (-> (l/digraph [[:chain-linear :start] [:chain-linear 1]]
-                            [[:chain-linear 1] [:chain-linear 2]]
-                            [[:chain-linear 2] [:chain-linear 3]]
-                            [[:chain-linear 3] [:chain-linear :end]]))]
-
-            [(-> (l/digraph )
-                 (l/add-nodes [:chain-linear :start]))
-             (-> (l/digraph)
-                 (l/add-nodes [:test :start]))]
-
-            [(-> (l/digraph )
-                 (l/add-nodes [:chain-linear :start]))
-             (-> (l/digraph)
-                 (l/add-edges [[:test :start ] [:test 1]]
-                              [[:test 1] [:test 2]]
-                              [[:test 2] [:item-bonus 3]]))]
-
-            
-            [(-> (l/digraph )
-                 (l/add-nodes [:chain-linear :start]))
-             (-> (l/digraph)
-                 (l/add-nodes [:test-secret :start ]))]
-
-            [(-> (l/digraph )
-                 (l/add-edges [[:chain-linear :start] [:chain-linear :end]]))
-             (-> (l/digraph)
-                 (l/add-edges [[:key :start ] [:lock :end]]))]
-
-            [(-> (l/digraph )
-                 (l/add-edges [[:chain-linear :start] [:chain-linear :end]]))
-             (-> (l/digraph)
-                 (l/add-edges [[:key :start ] [:lock :middle]]
-                              [[:lock :middle ] [:chain-linear :end]]))]
-
-            ;; make final chain
-            [(-> (l/digraph )
-                 (l/add-edges [[:chain-final 0] [:goal 10]]))
-
-             (-> (l/digraph [[:chain 0] [:test 1]]
-                            [[:chain 0] [:gate 5]]
-                            
-                            [[:test 1] [:hook 2]]
-                            [[:test 1] [:key-final 3]]
-                            [[:key-final 3] [:lock-final 4]]
-                            
-                            
-                            [[:gate 5] [:lock-final 4]]
-                            [[:chain 0] [:hook 6]]
-                            [[:lock-final 4] [:boss-level 8]]
-                            [[:boss-level 8] [:goal 10]]))]
-
-            ;; parallel chain
-            [(-> (l/digraph )
-                 (l/add-edges [[:chain :start] [:gate :end]]))
-             (-> (l/digraph)
-                 (l/add-edges [[:chain-parallel :start] [:gate :end]]))]
-
-            [(-> (l/digraph )
-                 (l/add-edges [[:chain-parallel :start] [:gate :end]]))
-             (-> (l/digraph)
-                 (l/add-edges [[:fork :start] [:key-multi 1]]
-                              [[:fork :start] [:key-multi 2]]
-                              [[:fork :start] [:key-multi 3]]
-                              [[:key-multi 1] [:lock-multi :end]]
-                              [[:key-multi 2] [:lock-multi :end]]
-                              [[:key-multi 3] [:lock-multi :end]]))]
-
-            [(-> (l/digraph )
-                 (l/add-edges [[:fork :start] [:key-multi :key]]))
-             (-> (l/digraph)
-                 (l/add-edges [[:fork :start] [:key 1]]
-                              [[:key 1] [:lock 2]]
-                              [[:lock 2] [:hook 3]]
-                              [[:lock 2] [:key-multi :key]]))]
-
-            [(-> (l/digraph )
-                 (l/add-nodes [:hook 1]))
-             (-> (l/digraph)
-                 (l/add-nodes [:nothing 1] 
-                              ))]
-
-            [(-> (l/digraph )
-                 (l/add-nodes [:hook 1]))
-             (-> (l/digraph)
-                 (l/add-edges [[:test 1] [:item-bonus 3]]
-                              ))]
-
-            [(-> (l/digraph )
-                 (l/add-nodes [:hook 1]))
-             (-> (l/digraph)
-                 (l/add-edges 
-                              [[:test-secret 1] [:item-bonus 3]]
-                              ))]
+                [(-> (l/digraph )
+                     (l/add-edges [[:chain :start] [:gate 2]]))
+                 (-> (l/digraph [[:chain-linear :start] [:chain-linear 2]]))]
 
 
-            ;; whatever the fork->h, fork->h thing is, not supportedh yet
-            [(-> (l/digraph )
-                 (l/add-nodes [:fork 1]))
-             (-> (l/digraph)
-                 (l/add-nodes [:nothing 1]))]
+                [(-> (l/digraph )
+                     (l/add-edges [[:chain :start] [:gate :end]]))
+                 (-> (l/digraph )
+                     (l/add-edges [[:chain-parallel :start] [:gate :end]]))]
 
-            
+                
 
-            #_[(-> (l/digraph )
-                 (l/add-edges [[:chain-fork 1] [:item-quest 2]]))
-             (-> (l/digraph [[:chain-fork 1] [:chain 3]]
-                            [[:chain 3] [:chain-join 4]]
-                            [[:chain-fork 1] [:chain 5]]
-                            [[:chain 5] [:chain-join 4]]
-                            [[:chain-join 4] [:item-quest 2]]))]
-            ])
+
+                [(-> (l/digraph )
+                     (l/add-nodes [:chain-linear :start]))
+                 (-> (l/digraph )
+                     (l/add-nodes [:puzzle :start]))]
+
+                [(-> (l/digraph )
+                     (l/add-edges [[:chain-parallel :start] [:gate :end]]))
+                 (-> (l/digraph )
+                     (l/add-edges [[:fork :start] [:puzzle 1]]
+                                  [[:fork :start] [:puzzle 2]]
+                                  [[:fork :start] [:puzzle 3]]
+                                  [[:puzzle 1] [:puzzle :end]]
+                                  [[:puzzle 2] [:puzzle :end]]
+                                  [[:puzzle 3] [:puzzle :end]]))]
+
+                [(-> (l/digraph )
+                     (l/add-nodes [:fork :start]))
+                 (-> (l/digraph )
+                     (l/add-nodes [:nothing :start]))]
+
+                [(-> (l/digraph )
+                     (l/add-nodes [:fork :start]))
+                 (-> (l/digraph )
+                     (l/add-edges [[:fork :start] [:puzzle 2]]))]
+
+                [(-> (l/digraph )
+                     (l/add-nodes [:puzzle :start]))
+                 (-> (l/digraph )
+                     (l/add-edges [[:puzzle :start] [:get-item 2]]))]
+                
+
+                #_[(-> (l/digraph )
+                     (l/add-edges [[:chain :begin] [:gate :end]]))
+                 (-> (l/digraph
+                      [[:get-potion-quest :begin] [:get-spell-component 2]]
+                      [[:get-potion-quest :begin] [:get-spell-component 3]]
+                      [[:get-potion-quest :begin] [:get-spell-component 4]]
+
+                      [[:get-spell-component 2] [:mix-ingredients 5]]
+                      [[:get-spell-component 3] [:mix-ingredients 5]]
+                      [[:get-spell-component 4] [:mix-ingredients 5]]
+                      [[:mix-ingredients 5] [:reward :end]]))]
+
+                
+
+                #_[(-> (l/digraph )
+                     (l/add-nodes [:puzzle :begin]))
+                 (-> (l/digraph
+                      [[:nothing :begin] [:puzzle 2]]
+                      [[:nothing :begin] [:puzzle 3]]
+                      [[:nothing :begin] [:puzzle 4]]
+                      [[:puzzle 2] [:nothing :end]]
+                      [[:puzzle 3] [:nothing :end]]
+                      [[:puzzle 4] [:nothing :end]]))]
+
+                
+
+                
+                ]
+               (into (map (fn [name]
+                            [(-> (l/digraph )
+                                 (l/add-nodes [:get-spell-component :component]))
+                             (-> (l/digraph)
+                                 (l/add-nodes [name :component]))])
+                          [:bone-meal :chicken-feathers :mandrake-root :toad-spittle :fish-oil :river-mud :apple-cores :pinch-of-salt :sea-water :dragon-tears :reptile-scale :troll-spit :cat-hair :swamp-muck :swamp-ooze]))))
 
 (defn root [graph]
   (first
@@ -195,17 +159,23 @@
                   (l/successors graph node)))
        (conj  paths path)))))
 
-(defn find-sequence [path target f]
-  (if (seq path)
-    (if (= (map first target) (map f  (take (count target) path)))
-      (into {}
-            (map
-             (fn [source dest]
-               [(second dest) source ])
-             path
-             target))
-      (find-sequence (rest path) target f))
-    nil))
+(defn find-sequence
+  ([path target f]
+   (find-sequence path target f []))
+  ([path target f results]
+   (if (seq path)
+     (if (= (map first target) (map f  (take (count target) path)))
+       (find-sequence
+        (rest path) target f
+        (conj results
+              (into {}
+                    (map
+                     (fn [source dest]
+                       [(second dest) source ])
+                     path
+                     target))))
+       (find-sequence (rest path) target f results))
+     results)))
 
 (defn add-nodes-from-output-graph [graph output-graph target-ids]
   (reduce
@@ -242,20 +212,20 @@
 (defn apply-rule [graph [input output]]
   (reduce
    (fn [graph path]
-     (if-let [matched-nodes (find-sequence path
-                                           (first (distinct-paths input))
-                                           #(a/attr graph % :type))]
+     (if-let [matched-nodes (first (shuffle (find-sequence path
+                                                           (first (distinct-paths input))
+                                                           #(a/attr graph % :type))))]
        (let [original-graph graph
              target-ids (into matched-nodes
                                 (map (fn [[type n]]
                                        [n  (matched-nodes n (str (java.util.UUID/randomUUID)))]))
                                   (l/nodes output))]
-         (-> graph
-             (add-nodes-from-output-graph output target-ids)
-             
-             (remove-edges-from-input input target-ids)
-             (add-edges-from-output-graph output target-ids)
-             (add-edges-from-old-nodes output target-ids original-graph)))
+         (reduced (-> graph
+                      (add-nodes-from-output-graph output target-ids)
+                      
+                      (remove-edges-from-input input target-ids)
+                      (add-edges-from-output-graph output target-ids)
+                      (add-edges-from-old-nodes output target-ids original-graph))))
        graph))
    graph
    (distinct-paths graph)))
@@ -269,6 +239,7 @@
 (defn make-graph []
   (loop [graph (apply-rule initial initial-step)
          shuffled-rules (shuffle rules)]
+    (println (filter non-terminal-nodes (map #(a/attr graph % :type) (l/nodes graph))))
     (if (every? (complement non-terminal-nodes) (map #(a/attr graph % :type) (l/nodes graph)))
       graph
       (recur (loop [graph graph
