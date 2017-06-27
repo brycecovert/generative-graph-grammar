@@ -53,7 +53,15 @@
                      [[:task 4] [:key 2]]
                      [[:key 2] [:lock 3]]
                      [[:lock 3] [nil 5]]))]
-   ])
+
+   [(-> (l/digraph)
+        (l/add-edges [[nil 1] [:lock 4]]
+                     [[nil 2] [nil 3]]
+                     [[nil 3] [:lock 4]]))
+    (-> (l/digraph)
+        (l/add-edges [[nil 1] [:lock 4]]
+                     [[nil 2] [nil 3]]
+                     [[nil 2] [:lock 4]]))]])
 
 
 (def all-rules (-> [
@@ -195,8 +203,28 @@
      
      (= coalesced-target-values source-values))))
 
+(defn graph->patterns [graph]
+  (reduce
+   (fn [patterns [type :as node]]
+     (if (seq (l/successors graph node))
+       (conj patterns [type (mapv first (l/successors graph node))])
+       patterns))
+   [] 
+   (alg/bf-traverse graph)))
+
+(defn breadth-first [graph searcher]
+  (loop [[current & frontier] [(root searcher)]
+        visited #{current}]
+    (if current
+      (recur (-> frontier
+                 (into (filter (complement visited) (l/successors searcher current)))
+                 (into (filter (complement visited) (l/predecessors searcher current))))
+             (conj visited current))
+      visited)))
+
 (defn find-sequence
   ([path target f]
+
    (find-sequence path target f []))
   ([path target f results]
    (if (seq path)
