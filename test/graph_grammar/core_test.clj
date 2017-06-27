@@ -34,12 +34,25 @@
        (l/add-edges [[:start 1] [:middle-1 2]]
                     [[:middle-1 2] [:middle-2 3]]))])
 
+(def ?->end==>?->middle->end
+  [(-> (l/digraph )
+       (l/add-edges [[nil 1] [:end 3]]))
+   (-> (l/digraph )
+       (l/add-edges [[nil 1] [:middle 2]]
+                    [[:middle 2] [:end 3]]))])
+
 
 (defn ->type-paths [graph]
   (map (fn [path] (map #(a/attr graph % :type) path)) (distinct-paths graph)))
 
 
 (deftest a-test
+  (testing "matching subsequences"
+    (is (subsequence-matches? [1 2 3]
+                              [1 2 3]))
+    (testing "should consider nil a wildcard"
+      (is (subsequence-matches? [nil 2 3]
+                                [1 2 3]))))
   (testing "applying rules"
     (testing "root node"
       (is (=
@@ -113,5 +126,17 @@
                (l/add-edges [1 2] [2 3])
                (apply-rule start->middle==>start->middle-1->middle-2)
                ->type-paths)
-           ))) 
+           )))
+
+    (testing "should allow wildcard "
+      (println "this test")
+      (is (=
+           [[:start :middle :end]]
+           (-> (l/digraph)
+               (add-typed-node :start 1)
+               (add-typed-node :end 2)
+               (l/add-edges [1 2])
+               (apply-rule ?->end==>?->middle->end)
+               ->type-paths)
+           )))
     ))
