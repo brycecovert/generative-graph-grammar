@@ -59,6 +59,14 @@
                                  [:fork :end]))]
     (testing "graph->patterns"
       (testing "should create sequence of patterns from searcher"
+        (is (= [[:A [:B]]
+                [:C [:B]]]
+               (-> (l/digraph)
+                   (l/add-edges [[:A :A] [:B :B]]
+                                [[:C :C] [:B :B]])
+                   (graph->patterns)))))
+
+      (testing "should create sequence of patterns including multiple root nodes"
         (is (= [[:B [:D]]
                 [:A [:A :B :C]]]
                (-> (l/digraph)
@@ -66,8 +74,7 @@
                                 [[:A :A1] [:B :B]]
                                 [[:A :A1] [:C :C]]
                                 [[:B :B] [:D :D]])
-                   (graph->patterns))))
-        ))
+                   (graph->patterns))))))
     #_(testing "simple match"
       (let [searcher (-> (l/digraph)
                          (l/add-edges [[:start :start] [:fork :fork]]))]
