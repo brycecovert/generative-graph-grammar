@@ -198,55 +198,6 @@
                      (l/successors graph node)))
        (conj  paths path)))))
 
-(defn subsequence-matches? [target-values source-values]
-  (let [coalesced-target-values (map #(or %1 %2) target-values source-values)]
-    (and
-
-     (= (count target-values) (count source-values))
-     
-     (= coalesced-target-values source-values))))
-
-(defn graph->patterns [graph]
-  (println "BF traverse on search" (alg/bf-traverse graph))
-  (reduce
-   (fn [patterns [type id :as node]]
-     (conj patterns [[type id] (mapv first (l/successors graph node))]))
-   [] 
-   (alg/bf-traverse graph)))
-
-(declare search-for-patterns)
-
-(defn search-in-matches [graph matching-successors patterns affected-nodes current-starting-node]
-  (println "handling matches for" matching-successors)
-  (reduce
-   (fn [affected-nodes successor]
-     (println "Searching successors for" successor)
-     (reduce
-      (fn [affected-nodes [pattern-node-type required-successors :as pattern]]
-        (println "")
-        (if (and (= (a/attr graph successor :type) pattern-node-type)
-                 (>= (count (l/successors graph successor)) (count required-successors)))
-          (search-for-patterns graph successor pattern patterns affected-nodes current-starting-node)
-          affected-nodes
-          ))
-      affected-nodes
-      patterns))
-   affected-nodes
-   matching-successors))
-
-(defn search-for-patterns [graph node [[pattern-node-type pattern-node-id] required-successors] patterns affected-nodes current-starting-node]
-  (let [current-node-type (a/attr graph node :type)
-        node-successors (l/successors graph node)]
-    (println "required" required-successors "successors" node-successors)
-    (if (and (= current-node-type pattern-node-type)
-             (>= (count node-successors) (count required-successors)))
-      (let [matching-successors (filter (set required-successors) node-successors)]
-        (println "pattern node type" pattern-node-type "required successors" required-successors "matching successors" matching-successors)
-        (if (>= (count matching-successors) (count required-successors))
-          (search-in-matches graph matching-successors patterns (assoc affected-nodes pattern-node-id node) current-starting-node)
-          affected-nodes))
-      affected-nodes)))
-
 
 (defn search [graph subgraph [success? assignments]]
   (if (>= (count assignments) (count (l/nodes subgraph)))
@@ -261,10 +212,10 @@
           [next-assignment-type next-assignment] (->> (l/nodes subgraph)
                                   (filter (fn [n] (is-unassigned? (second n))))
                                   first)]
-      #_(println "trying to assign" next-assignment)
+      
       (reduce
        (fn [[success? assignments] possible-assignment]
-         #_(println "possible assignment" possible-assignment)
+         
          (if (and (not ((set (vals assignments)) possible-assignment))
                   (or (= next-assignment-type
                          (a/attr graph possible-assignment :type))
@@ -283,46 +234,9 @@
    (let [[success? assignments] (search graph subgraph [false {}])]
      (if success?
        assignments
-       nil)))
-  #_([graph subgraph current-starting-node]
-   (let [patterns (graph->patterns subgraph)]
-     (println "BF traverse on main" (alg/bf-traverse graph))
-     (println "all patterns" patterns)
-     (into #{}
-           (->> (reduce
-                 (fn [match-groups pattern]
-                   (reduce
-                    (fn [match-groups node]
-                      (println "searching starting from " node "pattern " pattern)
-                      (let [match-group (search-for-patterns graph node pattern patterns {} node)]
-                        (if (= (count match-group) (count patterns))
-                          (assoc match-groups node match-group)
-                          match-groups)))
-                    match-groups
-                    (alg/bf-traverse graph)))
-                 {}
-                 patterns)
-                (dbg)
-                vals)))))
+       nil))))
 
-(defn find-sequence
-  ([path target f]
 
-   (find-sequence path target f []))
-  ([path target f results]
-   (if (seq path)
-     (if (subsequence-matches? (map first target) (map f  (take (count target) path))) 
-       (find-sequence
-        (rest path) target f
-        (conj results
-              (into {}
-                    (map
-                     (fn [source dest]
-                       [(second dest) source ])
-                     path
-                     target))))
-       (find-sequence (rest path) target f results))
-     results)))
 
 (defn add-nodes-from-output-graph [graph output-graph target-ids]
   (reduce
@@ -360,25 +274,19 @@
   )
 
 (defn apply-rule [graph [input output]]
-  (reduce
-   (fn [graph path]
-     (if-let [matched-nodes (first (shuffle (find-sequence path
-                                                           (first (distinct-paths input))
-                                                           #(a/attr graph % :type))))]
-       (let [original-graph graph
-             target-ids (into matched-nodes
-                              (map (fn [[type n]]
-                                     [n  (matched-nodes n (str (java.util.UUID/randomUUID)))]))
-                              (l/nodes output))]
-         (reduced (-> graph
-                      (add-nodes-from-output-graph output target-ids)
+  (if-let [matched-nodes (search-for-subgraph graph input)]
+    (let [original-graph graph
+          target-ids (into matched-nodes
+                           (map (fn [[type n]]
+                                  [n  (matched-nodes n (str (java.util.UUID/randomUUID)))]))
+                           (l/nodes output))]
+      (-> graph
+          (add-nodes-from-output-graph output target-ids)
 
-                      (remove-edges-from-input input target-ids)
-                      (add-edges-from-output-graph output target-ids)
-                      (add-edges-from-old-nodes output target-ids original-graph))))
-       graph))
-   graph
-   (distinct-paths graph)))
+          (remove-edges-from-input input target-ids)
+          (add-edges-from-output-graph output target-ids)
+          (add-edges-from-old-nodes output target-ids original-graph)))
+    graph))
 
 (defn view [graph]
   (let [ids (into {} (map vector  (alg/bf-traverse graph (root graph)) (range)))]

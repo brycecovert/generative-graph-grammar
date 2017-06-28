@@ -213,13 +213,13 @@
       (let [move-lock-towards-entrance [(-> (l/digraph)
                                             (l/add-edges [[nil 1] [:lock 4]]
                                                          [[nil 2] [nil 3]]
-                                                         #_[[nil 3] [:lock 4]]))
+                                                         [[nil 3] [:lock 4]]))
                                         (-> (l/digraph)
                                             (l/add-edges [[nil 1] [:lock 4]]
                                                          [[nil 2] [nil 3]]
-                                                         #_[[nil 2] [:lock 4]]))]]
-        #_(is (=
-             [[:start :key :lock :end]]
+                                                         [[nil 2] [:lock 4]]))]]
+        (is (=
+             [[:start :task] [:start :task :task :lock] [:start :lock]]
              (-> (l/digraph)
                  (add-typed-node :start 0)
                  (add-typed-node :task 1)
@@ -231,5 +231,4 @@
                  (apply-rule move-lock-towards-entrance)
                  (doto (#(view %)))
                  ->type-paths
-                 )))))
-    ))
+                 )))))))
