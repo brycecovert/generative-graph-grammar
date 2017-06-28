@@ -223,6 +223,7 @@
      (println "Searching successors for" successor)
      (reduce
       (fn [affected-nodes [pattern-node-type required-successors :as pattern]]
+        (println "")
         (if (and (= (a/attr graph successor :type) pattern-node-type)
                  (>= (count (l/successors graph successor)) (count required-successors)))
           (search-for-patterns graph successor pattern patterns affected-nodes current-starting-node)
