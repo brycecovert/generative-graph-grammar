@@ -50,17 +50,22 @@
                     (add-typed-node :start :start)
                     (add-typed-node :middle :middle)
                     (add-typed-node :climax :climax)
+                    (add-typed-node :climax :climax-2)
                     (add-typed-node :end :end)
                     (add-typed-node :fork :fork)
                     (l/add-edges [:start :middle]
                                  [:middle :climax]
-                                 [:climax :end]
+                                 [:climax :climax-2]
+                                 [:climax-2 :end]
                                  [:start :fork]
                                  [:fork :end]))]
-    (testing "graph->patterns"
+    #_(testing "graph->patterns"
       (testing "should create sequence of patterns from searcher"
-        (is (= [[:B [:D]]
-                [:A [:A :B :C]]]
+        (is (= [[:A []]
+                [:B [:D]]
+                [:D []]
+                [:A [:A :B :C]]
+                [:C []]]
                (-> (l/digraph)
                    (l/add-edges [[:A :A1] [:A :A2]]
                                 [[:A :A1] [:B :B]]
@@ -69,20 +74,50 @@
                    (graph->patterns)))))
 
       (testing "should create sequence of patterns including multiple root nodes"
-        (is (= [[:A [:B]]
+        (is (= [[:B []]
+                [:A [:B]]
                 [:C [:B]]]
                (-> (l/digraph)
                    (l/add-edges [[:A :A] [:B :B]]
                                 [[:C :C] [:B :B]])
                    (graph->patterns))))
         ))
-    #_(testing "simple match"
+    (testing "simple match"
       (let [searcher (-> (l/digraph)
                          (l/add-edges [[:start :start] [:fork :fork]]))]
-        (println (first (distinct-paths searcher)))
-        (is (= [{:start :start
-                 :fork :fork}]
-               (find-sequence graph searcher #(a/attr graph % :type)))))))
+        (is (= #{{:start :start :fork :fork}} 
+               (search-for-subgraph graph searcher))))
+      #_(let [searcher (-> (l/digraph)
+                         (l/add-edges [[:fork :fork] [:end :end]]))]
+        (is (= #{:fork :end} 
+               (search-for-subgraph graph searcher))))
+      #_(let [searcher (-> (l/digraph)
+                         (l/add-edges [[:start :start] [:fork :fork]]
+                                      [[:fork :fork] [:end :end]]))]
+        (is (= #{:start :fork :end} 
+               (search-for-subgraph graph searcher)))))
+
+    #_(testing "node match"
+      (let [searcher (-> (l/digraph)
+                         (l/add-nodes [:start :start]))]
+        (is (= #{:start} 
+               (search-for-subgraph graph searcher))))
+
+      #_(testing "duplicate nodes of type"
+        (let [searcher (-> (l/digraph)
+                           (l/add-edges [[:climax :climax-1] [:climax :climax-2]]))]
+          (is (= #{:climax :climax-2} 
+                 (search-for-subgraph graph searcher))))))
+
+    #_(testing "partial match"
+      (let [searcher (-> (l/digraph)
+                         (l/add-edges [[:start :start] [:shouldnt-exist :shouldnt-exist]]))]
+        (is (= #{} 
+               (search-for-subgraph graph searcher))))
+      (let [searcher (-> (l/digraph)
+                         (l/add-edges [[:start :start] [:climax :climax]]))]
+        (is (= #{} 
+               (search-for-subgraph graph searcher))))))
   #_(testing "should match on arbirtrary wildcards"
     (let [graph (-> (l/digraph)
                     (add-typed-node :start :start)

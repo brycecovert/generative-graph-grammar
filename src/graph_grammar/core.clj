@@ -4,6 +4,9 @@
             [loom.alg :as alg]
             [loom.attr :as a]
             [loom.derived :as d]))
+(defn dbg [n]
+  (println n)
+  n)
 
 (defn id-node [n]
   (assoc n :id (str (java.util.UUID/randomUUID))))
@@ -204,23 +207,69 @@
      (= coalesced-target-values source-values))))
 
 (defn graph->patterns [graph]
+  (println "BF traverse on search" (alg/bf-traverse graph))
   (reduce
-   (fn [patterns [type :as node]]
-     (if (seq (l/successors graph node))
-       (conj patterns [type (mapv first (l/successors graph node))])
-       patterns))
+   (fn [patterns [type id :as node]]
+     (conj patterns [[type id] (mapv first (l/successors graph node))]))
    [] 
    (alg/bf-traverse graph)))
 
-(defn breadth-first [graph searcher]
-  (loop [[current & frontier] [(root searcher)]
-        visited #{current}]
-    (if current
-      (recur (-> frontier
-                 (into (filter (complement visited) (l/successors searcher current)))
-                 (into (filter (complement visited) (l/predecessors searcher current))))
-             (conj visited current))
-      visited)))
+(declare search-for-patterns)
+
+(defn search-in-matches [graph matching-successors patterns affected-nodes current-starting-node]
+  (println "handling matches for" matching-successors)
+  (reduce
+   (fn [affected-nodes successor]
+     (println "Searching successors for" successor)
+     (reduce
+      (fn [affected-nodes [pattern-node-type required-successors :as pattern]]
+        (if (and (= (a/attr graph successor :type) pattern-node-type)
+                 (>= (count (l/successors graph successor)) (count required-successors)))
+          (search-for-patterns graph successor pattern patterns affected-nodes current-starting-node)
+          affected-nodes
+          ))
+      affected-nodes
+      patterns))
+   affected-nodes
+   matching-successors))
+
+(defn search-for-patterns [graph node [[pattern-node-type pattern-node-id] required-successors] patterns affected-nodes current-starting-node]
+  (let [current-node-type (a/attr graph node :type)
+        node-successors (l/successors graph node)]
+    (println "required" required-successors "successors" node-successors)
+    (if (and (= current-node-type pattern-node-type)
+             (>= (count node-successors) (count required-successors)))
+      (let [matching-successors (filter (set required-successors) node-successors)]
+        (println "pattern node type" pattern-node-type "required successors" required-successors "matching successors" matching-successors)
+        (if (>= (count matching-successors) (count required-successors))
+          (search-in-matches graph matching-successors patterns (assoc affected-nodes pattern-node-id node) current-starting-node)
+          affected-nodes))
+      affected-nodes)))
+
+(defn search-for-subgraph
+  ([graph subgraph]
+   (search-for-subgraph graph subgraph nil))
+  ([graph subgraph current-starting-node]
+   
+   (let [patterns (graph->patterns subgraph)]
+     (println "BF traverse on main" (alg/bf-traverse graph))
+     (println "all patterns" patterns)
+     (into #{}
+           (->> (reduce
+                 (fn [match-groups pattern]
+                   (reduce
+                    (fn [match-groups node]
+                      (println "searching starting from " node "pattern " pattern)
+                      (let [match-group (search-for-patterns graph node pattern patterns {} node)]
+                        (if (= (count match-group) (count patterns))
+                          (assoc match-groups node match-group)
+                          match-groups)))
+                    match-groups
+                    (alg/bf-traverse graph)))
+                 {}
+                 patterns)
+                (dbg)
+                vals)))))
 
 (defn find-sequence
   ([path target f]
