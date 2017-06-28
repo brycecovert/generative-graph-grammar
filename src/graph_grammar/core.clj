@@ -247,11 +247,44 @@
           affected-nodes))
       affected-nodes)))
 
+
+(defn search [graph subgraph [success? assignments]]
+  (if (>= (count assignments) (count (l/nodes subgraph)))
+    (do (println "checking this assignment" assignments)
+      [(and (every?
+             (set (l/edges graph))
+             (map (fn [[f t]]
+                    [(assignments (second f)) (assignments (second t))])
+                  (l/edges subgraph))))
+       assignments])
+    (let [is-unassigned? (complement (set (keys assignments)))
+          [next-assignment-type next-assignment] (->> (l/nodes subgraph)
+                                  (filter (fn [n] (is-unassigned? (second n))))
+                                  first)]
+      #_(println "trying to assign" next-assignment)
+      (reduce
+       (fn [[success? assignments] possible-assignment]
+         #_(println "possible assignment" possible-assignment)
+         (if (and (not ((set (vals assignments)) possible-assignment))
+                  (or (= next-assignment-type
+                         (a/attr graph possible-assignment :type))
+                      (nil? next-assignment-type)))
+           (let [[success? test-assignments] (search graph subgraph [false (assoc assignments next-assignment possible-assignment)])]
+             (if success?
+               (reduced [success? test-assignments])
+               [false assignments]))
+           
+           [false assignments]))
+       [success?  assignments]
+       (l/nodes graph)))))
+
 (defn search-for-subgraph
   ([graph subgraph]
-   (search-for-subgraph graph subgraph nil))
-  ([graph subgraph current-starting-node]
-   
+   (let [[success? assignments] (search graph subgraph [false {}])]
+     (if success?
+       assignments
+       nil)))
+  #_([graph subgraph current-starting-node]
    (let [patterns (graph->patterns subgraph)]
      (println "BF traverse on main" (alg/bf-traverse graph))
      (println "all patterns" patterns)
