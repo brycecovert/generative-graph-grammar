@@ -29,76 +29,78 @@
   #{#_:gate :chain-linear :chain-parallel :chain :hook :fork :start :chain-final :get-spell-component :initial-task})
 
 (def single-puzzle-rules
-  [[(-> (l/digraph)
-        (l/add-nodes [:start 1]))
-    (-> (l/digraph)
-        (l/add-edges [[:begin 1] [:task 2]]
-                     [[:task 2] [:task 3]]
-                     [[:task 3] [:task 4]]
-                     [[:task 4] [:task 5]]
-                     [[:task 5] [:task 6]]
-                     [[:task 6] [:task 7]]
-                     [[:task 7] [:task 8]]
-                     [[:task 8] [:task 9]]
-                     [[:task 9] [:task 10]]
-                     [[:task 10] [:end 11]]
-                     ))]
+  {:initial [(-> (l/digraph)
+                 (l/add-nodes [:start 1]))
+             (-> (l/digraph)
+                 (l/add-edges [[:begin 1] [:task 2]] 
+                              [[:begin 2] [:task 3]]
+                              [[:task 3] [:end 4]]
+                              ))]
+   :add-task [(-> (l/digraph)
+                  (l/add-edges [[:task 1] [:task 2]]
+                               ))
+              (-> (l/digraph)
+                  (l/add-edges [[:task 1] [:task 2]]
+                               [[:task 2] [:task 3]]))]
 
    ;; rule 1
-   [(-> (l/digraph)
-        (l/add-edges [[nil 1] [:task 2]]))
-    (-> (l/digraph)
-        (l/add-edges [[nil 1] [:key 3]]
-                     [[nil 1] [:lock 2]]
-                     [[:key 3] [:lock 2]]))]
+   :generate-lock [(-> (l/digraph)
+                       (l/add-edges [[nil 1] [:task 2]]))
+                   (-> (l/digraph)
+                       (l/add-edges [[nil 1] [:key 3]]
+                                    [[nil 1] [:lock 2]]
+                                    [[:key 3] [:lock 2]]))]
 
 
    ;; rule 2
-   [(-> (l/digraph)
-        (l/add-edges [[nil 1] [:lock 4]]
-                     [[nil 2] [nil 3]]
-                     [[nil 3] [:lock 4]]))
-    (-> (l/digraph)
-        (l/add-edges [[nil 1] [:lock 4]]
-                     [[nil 2] [nil 3]]
-                     [[nil 2] [:lock 4]]))]
+   :move-lock [(-> (l/digraph)
+                   (l/add-edges [[nil 1] [:lock 4]]
+                                [[nil 2] [nil 3]]
+                                [[nil 3] [:lock 4]]))
+               (-> (l/digraph)
+                   (l/add-edges [[nil 1] [:lock 4]]
+                                [[nil 2] [nil 3]]
+                                [[nil 2] [:lock 4]]))]
 
 
    ;; rule 4
-   [(-> (l/digraph)
-        (l/add-edges [[nil 1] [:key 2]]
-                     [[:key 2] [:lock 3]]
-                     [[:lock 3] [:task 4]]
-                     [[:task 4] [nil 5]]))
-    (-> (l/digraph)
-        (l/add-edges [[nil 1] [:task 4]]
-                     [[:task 4] [:key 2]]
-                     [[:key 2] [:lock 3]]
-                     [[:lock 3] [nil 5]]))]
+   :move-key [(-> (l/digraph)
+                  (l/add-edges [[nil 1] [:key 2]]
+                               [[:key 2] [:lock 3]]
+                               [[:lock 3] [:task 4]]
+                               [[:task 4] [nil 5]]))
+              (-> (l/digraph)
+                  (l/add-edges [[nil 1] [:task 4]]
+                               [[:task 4] [:key 2]]
+                               [[:key 2] [:lock 3]]
+                               [[:lock 3] [nil 5]]))]
 
    ;; rule 5
-   [(-> (l/digraph)
-       
-        (l/add-edges [[:task :task] [:lock :lock]]
-                     [[:key :key] [:lock :lock]]))
-    (-> (l/digraph)
-        (l/add-edges [[:task :task] [:key :new-key]]
-                     [[:task :task] [:lock :lock]]
-                     [[:key :key] [:lock :lock]]
-                     [[:key :new-key] [:lock :lock]]))]
+   :duplicate-key [(-> (l/digraph)
+                       
+                       (l/add-edges [[:task :task] [:lock :lock]]
+                                    [[:key :key] [:lock :lock]]))
+                   (-> (l/digraph)
+                       (l/add-edges [[:task :task] [:key :new-key]]
+                                    [[:task :task] [:lock :lock]]
+                                    [[:key :key] [:lock :lock]]
+                                    [[:key :new-key] [:lock :lock]]))]
 
    ;; rule 6
-   [(-> (l/digraph)
-       
-        (l/add-edges [[:key :key] [:lock :lock]]
-                     [[:lock :lock] [nil 1]]
-                     [[nil 1] [:task :task]]))
-    (-> (l/digraph)
-        (l/add-edges [[:key :key] [:lock :lock]]
-                     [[:lock :lock] [nil 1]]
-                     [[nil 1] [:lock :task]]
-                     [[:key :key] [:lock :task]]))]
-   ])
+   :duplicate-lock [(-> (l/digraph)
+                        
+                        (l/add-edges [[:key :key] [:lock :lock]]
+                                     [[:lock :lock] [nil 1]]
+                                     [[nil 1] [:task :task]]))
+                    (-> (l/digraph)
+                        (l/add-edges [[:key :key] [:lock :lock]]
+                                     [[:lock :lock] [nil 1]]
+                                     [[nil 1] [:lock :task]]
+                                     [[:key :key] [:lock :task]]))]
+   })
+(def recipe [[[:initial] 1 1]
+             [[:add-task] 5 15]
+             [[:generate-lock :move-lock :move-key :duplicate-key :duplicate-lock] 10 15]])
 
 
 (def all-rules (-> [
@@ -327,30 +329,16 @@
      graph
      :node-label #(str (name (or  (a/attr graph % :type) :unknown)) " " (ids %)))))
 
-(defn make-graph [rules]
-  (loop [graph initial
-         shuffled-rules (shuffle rules)]
-    
-    (let [new-graph (loop [x 0
-                           graph graph]
-                      (if (< x 10)
-                        (recur (inc x)
-                               (loop [graph graph
-                                      [rule & rules] shuffled-rules]
-                                 (if rule
-                                   (if (not= graph (apply-rule graph rule))
-                                     (apply-rule graph rule)
-                                     (recur graph rules))
-                                   graph)))
-                        graph))]
-      (cond
-       (every? (complement non-terminal-nodes) (map #(a/attr new-graph % :type) (l/nodes new-graph)))
-        new-graph
-
-        (= graph new-graph)
-        (throw (Exception. (str "No rules remove non-terminal nodes " (vec (filter non-terminal-nodes (map #(a/attr new-graph % :type) (l/nodes new-graph)))))))
-
-        :else
-        (recur 
-         new-graph
-         (shuffle rules))))))
+(defn make-graph [recipe rules]
+  (reduce
+   (fn [graph [rule-keys min max]]
+     (let [random-iterations (+ min (rand-int (- max min)))]
+       (loop [x 0
+              graph graph]
+         (if (< x random-iterations)
+           (recur (inc x)
+                  (apply-rule graph ((rand-nth rule-keys) rules)))
+           (apply-rule graph ((rand-nth rule-keys) rules))
+           )))) 
+   initial 
+   recipe))
