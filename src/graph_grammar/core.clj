@@ -33,12 +33,16 @@
                  (l/add-nodes [:start 1]))
              (-> (l/digraph)
                  (l/add-edges [[:begin 1] [:task 2]] 
-                              [[:begin 2] [:task 3]]
-                              [[:task 3] [:end 4]]
+                              [[:task 2] [:task 3]]
+                              [[:task 3] [:task 4]]
+                              [[:task 4] [:task 5]]
+                              [[:task 5] [:task 6]]
+                              [[:task 6] [:task 7]]
+                              [[:task 7] [:task 8]]
+                              [[:task 8] [:end 9]]
                               ))]
    :add-task [(-> (l/digraph)
-                  (l/add-edges [[:task 1] [:task 2]]
-                               ))
+                  (l/add-edges [[:task 1] [:task 2]]))
               (-> (l/digraph)
                   (l/add-edges [[:task 1] [:task 2]]
                                [[:task 2] [:task 3]]))]
@@ -60,7 +64,8 @@
                (-> (l/digraph)
                    (l/add-edges [[nil 1] [:lock 4]]
                                 [[nil 2] [nil 3]]
-                                [[nil 2] [:lock 4]]))]
+                                [[nil 2] [:lock 4]]
+                                [[nil 3] [:lock 4]]))]
 
 
    ;; rule 4
@@ -99,7 +104,7 @@
                                      [[:key :key] [:lock :task]]))]
    })
 (def recipe [[[:initial] 1 1]
-             [[:add-task] 5 15]
+             [[:add-task] 1 5]
              [[:generate-lock :move-lock :move-key :duplicate-key :duplicate-lock] 10 15]])
 
 
@@ -245,8 +250,8 @@
      assignments]
     (let [is-unassigned? (complement (set (keys assignments)))
           [next-assignment-type next-assignment] (->> (l/nodes subgraph)
-                                  (filter (fn [n] (is-unassigned? (second n))))
-                                  first)]
+                                                      (filter (fn [n] (is-unassigned? (second n))))
+                                                      first)]
       
       (reduce
        (fn [[success? assignments] possible-assignment]
@@ -262,7 +267,7 @@
            
            [false assignments]))
        [success?  assignments]
-       (l/nodes graph)))))
+       (shuffle (l/nodes graph))))))
 
 (defn search-for-subgraph
   ([graph subgraph]
@@ -338,7 +343,6 @@
          (if (< x random-iterations)
            (recur (inc x)
                   (apply-rule graph ((rand-nth rule-keys) rules)))
-           (apply-rule graph ((rand-nth rule-keys) rules))
-           )))) 
+           (apply-rule graph ((rand-nth rule-keys) rules)))))) 
    initial 
    recipe))
