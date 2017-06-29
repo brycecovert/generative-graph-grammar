@@ -113,15 +113,6 @@
 
 
 (deftest a-test
-  (testing "matching subsequences"
-    (is (subsequence-matches? [1 2 3]
-                              [1 2 3]))
-    (testing "should consider nil a wildcard"
-      (is (subsequence-matches? [nil 2 3]
-                                [1 2 3]))))
-
-  (testing "finding sections that apply"
-    )
   (testing "applying rules"
     (testing "root node"
       (is (=

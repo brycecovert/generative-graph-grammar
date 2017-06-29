@@ -37,8 +37,14 @@
                      [[:task 3] [:task 4]]
                      [[:task 4] [:task 5]]
                      [[:task 5] [:task 6]]
-                     [[:task 6] [:end 7]]
+                     [[:task 6] [:task 7]]
+                     [[:task 7] [:task 8]]
+                     [[:task 8] [:task 9]]
+                     [[:task 9] [:task 10]]
+                     [[:task 10] [:end 11]]
                      ))]
+
+   ;; rule 1
    [(-> (l/digraph)
         (l/add-edges [[nil 1] [:task 2]]))
     (-> (l/digraph)
@@ -46,6 +52,19 @@
                      [[nil 1] [:lock 2]]
                      [[:key 3] [:lock 2]]))]
 
+
+   ;; rule 2
+   [(-> (l/digraph)
+        (l/add-edges [[nil 1] [:lock 4]]
+                     [[nil 2] [nil 3]]
+                     [[nil 3] [:lock 4]]))
+    (-> (l/digraph)
+        (l/add-edges [[nil 1] [:lock 4]]
+                     [[nil 2] [nil 3]]
+                     [[nil 2] [:lock 4]]))]
+
+
+   ;; rule 4
    [(-> (l/digraph)
         (l/add-edges [[nil 1] [:key 2]]
                      [[:key 2] [:lock 3]]
@@ -57,14 +76,29 @@
                      [[:key 2] [:lock 3]]
                      [[:lock 3] [nil 5]]))]
 
+   ;; rule 5
    [(-> (l/digraph)
-        (l/add-edges [[nil 1] [:lock 4]]
-                     [[nil 2] [nil 3]]
-                     [[nil 3] [:lock 4]]))
+       
+        (l/add-edges [[:task :task] [:lock :lock]]
+                     [[:key :key] [:lock :lock]]))
     (-> (l/digraph)
-        (l/add-edges [[nil 1] [:lock 4]]
-                     [[nil 2] [nil 3]]
-                     [[nil 2] [:lock 4]]))]])
+        (l/add-edges [[:task :task] [:key :new-key]]
+                     [[:task :task] [:lock :lock]]
+                     [[:key :key] [:lock :lock]]
+                     [[:key :new-key] [:lock :lock]]))]
+
+   ;; rule 6
+   [(-> (l/digraph)
+       
+        (l/add-edges [[:key :key] [:lock :lock]]
+                     [[:lock :lock] [nil 1]]
+                     [[nil 1] [:task :task]]))
+    (-> (l/digraph)
+        (l/add-edges [[:key :key] [:lock :lock]]
+                     [[:lock :lock] [nil 1]]
+                     [[nil 1] [:lock :task]]
+                     [[:key :key] [:lock :task]]))]
+   ])
 
 
 (def all-rules (-> [
@@ -201,13 +235,12 @@
 
 (defn search [graph subgraph [success? assignments]]
   (if (>= (count assignments) (count (l/nodes subgraph)))
-    (do (println "checking this assignment" assignments)
-      [(and (every?
-             (set (l/edges graph))
-             (map (fn [[f t]]
-                    [(assignments (second f)) (assignments (second t))])
-                  (l/edges subgraph))))
-       assignments])
+    [(and (every?
+           (set (l/edges graph))
+           (map (fn [[f t]]
+                  [(assignments (second f)) (assignments (second t))])
+                (l/edges subgraph))))
+     assignments]
     (let [is-unassigned? (complement (set (keys assignments)))
           [next-assignment-type next-assignment] (->> (l/nodes subgraph)
                                   (filter (fn [n] (is-unassigned? (second n))))
@@ -300,7 +333,7 @@
     
     (let [new-graph (loop [x 0
                            graph graph]
-                      (if (< x 5)
+                      (if (< x 10)
                         (recur (inc x)
                                (loop [graph graph
                                       [rule & rules] shuffled-rules]
