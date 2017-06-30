@@ -207,8 +207,7 @@
 
   (->> (l/edges input)
        (map (fn [[[_ from] [_ to]]] [(target-ids from) (target-ids to)]))
-       (apply l/remove-edges graph))
-  )
+       (apply l/remove-edges graph)))
 
 (defn apply-rule [graph [input output]]
   (if-let [matched-nodes (search-for-subgraph graph input)]
