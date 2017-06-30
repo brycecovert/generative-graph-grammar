@@ -9,37 +9,38 @@
 
 (def start==>replaced
   [(-> (l/digraph )
-       (l/add-nodes [:start 1]))
+       (add-typed-node :start 1))
    (-> (l/digraph )
-       (l/add-nodes [:replaced 1]))])
+       (add-typed-node :replaced 1))])
 
 (def start->end==>start->added->end
   [(-> (l/digraph )
-       (l/add-edges [[:start 1] [:end 2]]))
+       (add-typed-edge :start 1 :end 2))
    (-> (l/digraph )
-       (l/add-edges [[:start 1] [:added 3]]
-                    [[:added 3] [:end 2]]))])
+       (add-typed-edge :start 1 :added 3)
+       (add-typed-edge :added 3 :end 2))])
 
 (def middle->end==>middle-1->middle-2->end
   [(-> (l/digraph )
-       (l/add-edges [[:middle 1] [:end 3]]))
+       (add-typed-edge :middle 1 :end 3))
    (-> (l/digraph )
-       (l/add-edges [[:middle-1 1] [:middle-2 2]]
-                    [[:middle-2 2] [:end 3]]))])
+       (add-typed-edge :middle-1 1 :middle-2 2 )
+       (add-typed-edge :middle-2 2 :end 3 ))])
 
 (def start->middle==>start->middle-1->middle-2
   [(-> (l/digraph )
-       (l/add-edges [[:start 1] [:middle 3]]))
+       (add-typed-edge :start 1 :middle 3)
+       )
    (-> (l/digraph )
-       (l/add-edges [[:start 1] [:middle-1 2]]
-                    [[:middle-1 2] [:middle-2 3]]))])
+       (add-typed-edge :start 1 :middle-1 2)
+       (add-typed-edge :middle-1 2 :middle-2 3))])
 
 (def ?->end==>?->middle->end
   [(-> (l/digraph )
-       (l/add-edges [[nil 1] [:end 3]]))
+       (add-typed-edge nil 1 :end 3))
    (-> (l/digraph )
-       (l/add-edges [[nil 1] [:middle 2]]
-                    [[:middle 2] [:end 3]]))])
+       (add-typed-edge nil 1 :middle 2)
+       (add-typed-edge :middle 2 :end 3))])
 
 
 (defn ->type-paths [graph]
@@ -62,49 +63,49 @@
     
     (testing "simple match"
       (let [searcher (-> (l/digraph)
-                         (l/add-edges [[:start :start] [:fork :fork]]))]
+                         (add-typed-edge :start :start :fork :fork))]
         (is (= {:start :start :fork :fork} 
                (search-for-subgraph graph searcher))))
       (let [searcher (-> (l/digraph)
-                         (l/add-edges [[:fork :fork] [:end :end]]))]
+                         (add-typed-edge :fork :fork :end :end))]
         (is (= {:end :end :fork :fork} 
                (search-for-subgraph graph searcher))))
       (let [searcher (-> (l/digraph)
-                         (l/add-edges [[:start :start] [:fork :fork]]
-                                      [[:fork :fork] [:end :end]]))]
+                         (add-typed-edge :start :start :fork :fork)
+                         (add-typed-edge :fork :fork :end :end))]
         (is (= {:start :start :fork :fork :end :end}  
                (search-for-subgraph graph searcher)))))
 
     (testing "node match"
       (let [searcher (-> (l/digraph)
-                         (l/add-nodes [:start :start]))]
+                         (add-typed-node :start :start))]
         (is (= {:start :start} 
                (search-for-subgraph graph searcher))))
       (let [searcher (-> (l/digraph)
-                         (l/add-nodes [:non :non]))]
+                         (add-typed-node :non :non))]
         (is (nil? (search-for-subgraph graph searcher))))
 
       (testing "duplicate nodes of type"
         (let [searcher (-> (l/digraph)
-                           (l/add-edges [[:climax :climax-1] [:climax :climax-2]]))]
+                           (add-typed-edge :climax :climax-1 :climax :climax-2))]
           (is (= {:climax-1 :climax
                   :climax-2 :climax-2} 
                  (search-for-subgraph graph searcher))))))
 
     (testing "partial match"
       (let [searcher (-> (l/digraph)
-                         (l/add-edges [[:start :start] [:shouldnt-exist :shouldnt-exist]]))]
+                         (add-typed-edge :start :start :shouldnt-exist :shouldnt-exist))]
         (is (= nil
                (search-for-subgraph graph searcher))))
       (let [searcher (-> (l/digraph)
-                         (l/add-edges [[:start :start] [:climax :climax]]))]
+                         (add-typed-edge :start :start :climax :climax))]
         (is (= nil
                (search-for-subgraph graph searcher)))))
     (testing "should match on arbirtrary wildcards"
       (let [searcher (-> (l/digraph)
-                         (l/add-edges [[nil :middle] [:climax :climax-1] ]
-                                      [[:climax :climax-1] [:climax :climax-2] ]
-                                      [[:climax :climax-2] [nil :end]]))]
+                         (add-typed-edge nil :middle :climax :climax-1 )
+                         (add-typed-edge :climax :climax-1 :climax :climax-2  )
+                         (add-typed-edge :climax :climax-2 nil :end  ))]
         (is (= {:middle :middle
                 :climax-1 :climax
                 :climax-2 :climax-2
@@ -146,8 +147,7 @@
                (add-typed-node :end 2)
                (l/add-edges [1 2])
                (apply-rule start->end==>start->added->end)
-               ->type-paths)
-           )))
+               ->type-paths))))
     (testing "replacing middle should preserve edge"
       (is (=
            [[:start :replaced :end]]
@@ -157,9 +157,9 @@
                (add-typed-node :end 3)
                (l/add-edges [1 2] [2 3])
                (apply-rule [(-> (l/digraph)
-                                (l/add-edges [[:middle 2] [:end 3]]))
+                                (add-typed-edge :middle 2 :end 3))
                             (-> (l/digraph)
-                                (l/add-edges [[:replaced 2] [:end 3]]))])
+                                (add-typed-edge :replaced 2 :end 3))])
                
                ->type-paths)
            )))
@@ -198,28 +198,4 @@
                (l/add-edges [1 2])
                (apply-rule ?->end==>?->middle->end)
                ->type-paths)
-           )))
-
-    (testing "should allow something"
-      (let [move-lock-towards-entrance [(-> (l/digraph)
-                                            (l/add-edges [[nil 1] [:lock 4]]
-                                                         [[nil 2] [nil 3]]
-                                                         [[nil 3] [:lock 4]]))
-                                        (-> (l/digraph)
-                                            (l/add-edges [[nil 1] [:lock 4]]
-                                                         [[nil 2] [nil 3]]
-                                                         [[nil 2] [:lock 4]]))]]
-        (is (=
-             [[:start :task] [:start :task :task :lock] [:start :lock]]
-             (-> (l/digraph)
-                 (add-typed-node :start 0)
-                 (add-typed-node :task 1)
-                 (add-typed-node :lock 2)
-                 (add-typed-node :task 3)
-                 (add-typed-node :task 4)
-                 (l/add-edges [0 1] [1 2] [3 4] [4 2] [0 3])
-                 (doto (#(view %)))
-                 (apply-rule move-lock-towards-entrance)
-                 (doto (#(view %)))
-                 ->type-paths
-                 )))))))
+           )))))

@@ -21,6 +21,16 @@
        (l/add-nodes id)
        (a/add-attr-to-nodes :type type [id]))))
 
+(defn add-typed-edge
+  ([g type1 type2]
+   (add-typed-edge g type1 (str (java.util.UUID/randomUUID)) type2 (str (java.util.UUID/randomUUID))))
+  
+  ([g type1 id1 type2 id2]
+   (-> g
+       (add-typed-node type1 id1)
+       (add-typed-node type2 id2)
+       (l/add-edges [id1 id2]))))
+
 (def initial (-> (l/digraph)
                  (add-typed-node :start )))
 
@@ -30,77 +40,77 @@
 
 (def single-puzzle-rules
   {:initial [(-> (l/digraph)
-                 (l/add-nodes [:start 1]))
+                 (add-typed-node :start 1))
              (-> (l/digraph)
-                 (l/add-edges [[:begin 1] [:task 2]] 
-                              [[:task 2] [:task 3]]
-                              [[:task 3] [:task 4]]
-                              [[:task 4] [:task 5]]
-                              [[:task 5] [:task 6]]
-                              [[:task 6] [:task 7]]
-                              [[:task 7] [:task 8]]
-                              [[:task 8] [:end 9]]))]
+                 (add-typed-edge :begin 1 :task 2)
+                 (add-typed-edge :task 2 :task 3)
+                 (add-typed-edge :task 3 :task 4)
+                 (add-typed-edge :task 4 :task 5)
+                 (add-typed-edge :task 5 :task 6)
+                 (add-typed-edge :task 6 :task 7)
+                 (add-typed-edge :task 7 :task 8)
+                 (add-typed-edge :task 8 :end 9))]
    :add-task [(-> (l/digraph)
-                  (l/add-edges [[:task 1] [:task 2]]))
+                  (add-typed-edge :task 1 :task 2))
               (-> (l/digraph)
-                  (l/add-edges [[:task 1] [:task 2]]
-                               [[:task 2] [:task 3]]))]
+                  (add-typed-edge :task 1 :task 2)
+                  (add-typed-edge :task 2 :task 3))]
 
    ;; rule 1
    :generate-lock [(-> (l/digraph)
-                       (l/add-edges [[nil 1] [:task 2]]))
+                       (add-typed-edge nil 1 :task 2))
                    (-> (l/digraph)
-                       (l/add-edges [[nil 1] [:key 3]]
-                                    [[nil 1] [:lock 2]]
-                                    [[:key 3] [:lock 2]]))]
+                       (add-typed-edge nil 1 :key 3)
+                       (add-typed-edge nil 1 :lock 2)
+                       (add-typed-edge :key 3 :lock 2))]
 
 
    ;; rule 2
    :move-lock [(-> (l/digraph)
-                   (l/add-edges [[nil 1] [:lock 4]]
-                                [[nil 2] [nil 3]]
-                                [[nil 3] [:lock 4]]))
+                   (add-typed-edge nil 1 :lock 4)
+                   (add-typed-edge nil 2 nil 3)
+                   (add-typed-edge nil 3 :lock 4))
                (-> (l/digraph)
-                   (l/add-edges [[nil 1] [:lock 4]]
-                                [[nil 2] [nil 3]]
-                                [[nil 2] [:lock 4]]
-                                [[nil 3] [:lock 4]]))]
+                   (add-typed-edge nil 1 :lock 4)
+                   (add-typed-edge nil 2 nil 3)
+                   (add-typed-edge nil 2 :lock 4)
+                   (add-typed-edge nil 3 :lock 4))]
 
 
    ;; rule 4
    :move-key [(-> (l/digraph)
-                  (l/add-edges [[nil 1] [:key 2]]
-                               [[:key 2] [:lock 3]]
-                               [[:lock 3] [:task 4]]
-                               [[:task 4] [nil 5]]))
+                  (add-typed-edge nil 1 :key 2)
+                  (add-typed-edge :key 2 :lock 3)
+                  (add-typed-edge :lock 3 :task 4)
+                  (add-typed-edge :task 4 nil 5))
               (-> (l/digraph)
-                  (l/add-edges [[nil 1] [:task 4]]
-                               [[:task 4] [:key 2]]
-                               [[:key 2] [:lock 3]]
-                               [[:lock 3] [nil 5]]))]
+                  (add-typed-edge nil 1 :task 4)
+                  (add-typed-edge :task 4 :key 2)
+                  (add-typed-edge :key 2 :lock 3)
+                  (add-typed-edge :lock 3 nil 5))]
 
    ;; rule 5
    :duplicate-key [(-> (l/digraph)
-                       
-                       (l/add-edges [[:task :task] [:lock :lock]]
-                                    [[:key :key] [:lock :lock]]))
+                       (add-typed-edge :task :task :lock :lock)
+                       (add-typed-edge :key :key :lock :lock))
                    (-> (l/digraph)
-                       (l/add-edges [[:task :task] [:key :new-key]]
-                                    [[:task :task] [:lock :lock]]
-                                    [[:key :key] [:lock :lock]]
-                                    [[:key :new-key] [:lock :lock]]))]
+                       (add-typed-edge :task :task :key :new-key)
+                       (add-typed-edge :task :task :lock :lock)
+                       (add-typed-edge :key :key :lock :lock)
+                       (add-typed-edge :key :new-key :lock :lock))]
 
    ;; rule 6
    :duplicate-lock [(-> (l/digraph)
-                        
-                        (l/add-edges [[:key :key] [:lock :lock]]
-                                     [[:lock :lock] [nil 1]]
-                                     [[nil 1] [:task :task]]))
+                        (-> (l/digraph)
+                            
+                            (add-typed-edge :key :key :lock :lock)
+                            (add-typed-edge :lock :lock nil 1)
+                            (add-typed-edge :nil 1 :task :task)))
                     (-> (l/digraph)
-                        (l/add-edges [[:key :key] [:lock :lock]]
-                                     [[:lock :lock] [nil 1]]
-                                     [[nil 1] [:lock :task]]
-                                     [[:key :key] [:lock :task]]))]})
+                        (add-typed-edge :key :key :lock :lock)
+                        (add-typed-edge :lock :lock nil 1)
+                        (add-typed-edge :nil 1 :lock :task)
+                        (add-typed-edge :key :key :lock :task))]})
 
 (def recipe [[[:initial] 1 1]
              [[:add-task] 1 5]
@@ -142,13 +152,14 @@
     [(and (every?
            (set (l/edges graph))
            (map (fn [[f t]]
-                  [(assignments (second f)) (assignments (second t))])
+                  [(assignments f) (assignments t)])
                 (l/edges subgraph))))
      assignments]
     (let [is-unassigned? (complement (set (keys assignments)))
-          [next-assignment-type next-assignment] (->> (l/nodes subgraph)
-                                                      (filter (fn [n] (is-unassigned? (second n))))
-                                                      first)]
+          next-assignment (->> (l/nodes subgraph)
+                               (filter is-unassigned?)
+                               first)
+          next-assignment-type (a/attr subgraph next-assignment :type)]
       
       (reduce
        (fn [[success? assignments] possible-assignment]
@@ -177,17 +188,17 @@
 
 (defn add-nodes-from-output-graph [graph output-graph target-ids]
   (reduce
-   (fn [graph [type id]]
-     (if type
-       
-       (add-typed-node graph  type (target-ids id))
-       graph))
+   (fn [graph target-id]
+     (let [type (a/attr output-graph target-id :type)]
+       (if type
+         (add-typed-node graph type (target-ids target-id))
+         graph)))
    graph
    (l/nodes output-graph)))
 
 (defn add-edges-from-output-graph [graph output-graph target-ids]
   (reduce
-   (fn [graph [[_ from-id] [_ to-id]]]
+   (fn [graph [from-id to-id]]
      (l/add-edges graph [(target-ids from-id) (target-ids to-id)]))
    graph
    (l/edges output-graph)))
@@ -200,28 +211,30 @@
                             ;; Seems like always false
                             (mapcat #(map (fn [s] [(source-ids %) s]) (l/successors original-graph %)))
                             #_(filter (complement (comp (set (l/nodes output-graph)) second))))]
-    (apply l/add-edges graph original-edges)
-    ))
+    (println "original edges" original-edges)
+    (apply l/add-edges graph original-edges)))
 
 (defn remove-edges-from-input [graph input target-ids]
+  (let [result (->> (l/edges input)
+                    (map (fn [[from to]] (doto [(target-ids from) (target-ids to)] println)))
+                    (apply l/remove-edges graph))]
+    (println (l/edges result))
+    result)
 
-  (->> (l/edges input)
-       (map (fn [[[_ from] [_ to]]] [(target-ids from) (target-ids to)]))
-       (apply l/remove-edges graph)))
+  )
 
 (defn apply-rule [graph [input output]]
   (if-let [matched-nodes (search-for-subgraph graph input)]
     (let [original-graph graph
           target-ids (into matched-nodes
-                           (map (fn [[type n]]
+                           (map (fn [n]
                                   [n  (matched-nodes n (str (java.util.UUID/randomUUID)))]))
                            (l/nodes output))]
       (-> graph
           (add-nodes-from-output-graph output target-ids)
 
           (remove-edges-from-input input target-ids)
-          (add-edges-from-output-graph output target-ids)
-          (add-edges-from-old-nodes output target-ids original-graph)))
+          (add-edges-from-output-graph output target-ids)))
     graph))
 
 (defn view [graph]
