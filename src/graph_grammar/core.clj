@@ -17,9 +17,21 @@
   ([g type]
    (add-typed-node g type (str (java.util.UUID/randomUUID))))
   ([g type id]
-   (-> g
-       (l/add-nodes id)
-       (a/add-attr-to-nodes :type type [id]))))
+   (let [g (l/add-nodes g id)]
+     (cond
+       (keyword? type)
+       (a/add-attr-to-nodes g :type type [id])
+
+       (map? type)
+       (reduce-kv
+        (fn [g k v]
+          (a/add-attr-to-nodes g k v [id]))
+        g
+        type
+        )
+
+       :else
+        g))))
 
 (defn add-typed-edge
   ([g type1 type2]
@@ -36,7 +48,7 @@
 
 
 (def non-terminal-nodes
-  #{#_:gate :chain-linear :chain-parallel :chain :hook :fork :start :chain-final :get-spell-component :initial-task})
+  #{#_:gate :chain-linear :chain-parallel :chain :hook :fork :start :chain-final :get-spell-component :initial-task :init-lock :init-key})
 
 (def single-puzzle-rules
   {:initial [(-> (l/digraph)
@@ -61,10 +73,55 @@
                        (add-typed-edge nil 1 :task 2)
                        (add-typed-edge :task 2 nil 4))
                    (-> (l/digraph)
-                       (add-typed-edge nil 1 :key 3)
-                       (add-typed-edge nil 1 :lock 2)
-                       (add-typed-edge :key 3 :lock 2)
-                       (add-typed-edge :lock 2 nil 4))]
+                       (add-typed-edge nil 1 :init-key 3)
+                       (add-typed-edge nil 1 :init-lock 2)
+                       (add-typed-edge :init-key 3 :init-lock 2)
+                       (add-typed-edge :init-lock 2 nil 4))]
+
+   :specify-lock-1 [(-> (l/digraph)
+                        (add-typed-edge :init-key :init-key :init-lock :init-lock))
+                    (-> (l/digraph)
+                        (add-typed-edge {:type :key :color :red} :init-key {:type :lock :color :red} :init-lock))]
+
+   :specify-lock-2 [(-> (l/digraph)
+                        (add-typed-edge :init-key :init-key :init-lock :init-lock))
+                    (-> (l/digraph)
+                        (add-typed-edge {:type :key :color :blue} :init-key {:type :lock :color :blue} :init-lock))]
+   
+   :specify-lock-3 [(-> (l/digraph)
+                        (add-typed-edge :init-key :init-key :init-lock :init-lock))
+                    (-> (l/digraph)
+                        (add-typed-edge {:type :key :color :green} :init-key {:type :lock :color :green} :init-lock))]
+
+   :specify-lock-4 [(-> (l/digraph)
+                        (add-typed-edge :init-key :init-key :init-lock :init-lock))
+                    (-> (l/digraph)
+                        (add-typed-edge {:type :key :color :orange} :init-key {:type :lock :color :orange} :init-lock))]
+
+   :specify-lock-5 [(-> (l/digraph)
+                        (add-typed-edge :init-key :init-key :init-lock :init-lock))
+                    (-> (l/digraph)
+                        (add-typed-edge {:type :key :color :magenta} :init-key {:type :lock :color :magenta} :init-lock))]
+
+   :specify-lock-6 [(-> (l/digraph)
+                        (add-typed-edge :init-key :init-key :init-lock :init-lock))
+                    (-> (l/digraph)
+                        (add-typed-edge {:type :key :color :aqua} :init-key {:type :lock :color :aqua} :init-lock))]
+
+   :specify-lock-7 [(-> (l/digraph)
+                        (add-typed-edge :init-key :init-key :init-lock :init-lock))
+                    (-> (l/digraph)
+                        (add-typed-edge {:type :key :color :yellow} :init-key {:type :lock :color :yellow} :init-lock))]
+
+   :specify-lock-8 [(-> (l/digraph)
+                        (add-typed-edge :init-key :init-key :init-lock :init-lock))
+                    (-> (l/digraph)
+                        (add-typed-edge {:type :key :color :brown} :init-key {:type :lock :color :brown} :init-lock))]
+
+   :specify-lock-9 [(-> (l/digraph)
+                        (add-typed-edge :init-key :init-key :init-lock :init-lock))
+                    (-> (l/digraph)
+                        (add-typed-edge {:type :key :color :black} :init-key {:type :lock :color :black} :init-lock))]
 
 
    ;; rule 2
@@ -118,7 +175,9 @@
 
 (def recipe [[[:initial] 1 1]
              [[:add-task] 1 5]
-             [[:generate-lock :move-lock :move-key :duplicate-lock :duplicate-key] 30 40]])
+             [[:generate-lock] 1 5]
+             [[:specify-lock-1 :specify-lock-2 :specify-lock-3 :specify-lock-3  :specify-lock-4 :specify-lock-5 :specify-lock-6 :specify-lock-7 :specify-lock-8 :specify-lock-9] 5 5]
+             [[:move-lock :move-key #_:duplicate-lock #_:duplicate-key] 10 40]])
 
 
 
@@ -193,10 +252,8 @@
 (defn add-nodes-from-output-graph [graph output-graph target-ids]
   (reduce
    (fn [graph target-id]
-     (let [type (a/attr output-graph target-id :type)]
-       (if type
-         (add-typed-node graph type (target-ids target-id))
-         graph)))
+     (let [attributes (a/attrs output-graph target-id)]
+       (add-typed-node graph attributes (target-ids target-id))))
    graph
    (l/nodes output-graph)))
 
@@ -230,7 +287,7 @@
   (let [ids (into {} (map vector  (alg/bf-traverse graph (root graph)) (range)))]
     (lio/view
      graph
-     :node-label #(str (name (or  (a/attr graph % :type) :unknown)) " " (ids %)))))
+     :node-label #(str (name (or  (a/attr graph % :type) :unknown)) " " (ids %) (a/attr graph % :color)))))
 
 (defn make-graph [recipe rules]
   (reduce
@@ -238,9 +295,13 @@
      (let [random-iterations (+ min (rand-int (- max min)))]
        (loop [x 0
               graph graph]
-         (if (< x random-iterations)
-           (recur (inc x)
-                  (apply-rule graph ((rand-nth rule-keys) rules)))
-           (apply-rule graph ((rand-nth rule-keys) rules)))))) 
+         (let [new-graph (apply-rule graph ((rand-nth rule-keys) rules))]
+           #_(println "recurring " x random-iterations graph new-graph)
+           (if (or #_(and (= random-iterations Integer/MAX_VALUE) (not= new-graph graph))
+                   (< x random-iterations))
+             
+             (recur (inc x)
+                    new-graph)
+             new-graph))))) 
    initial 
    recipe))
