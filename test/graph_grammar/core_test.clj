@@ -188,6 +188,20 @@
                ->type-paths)
            )))
 
+    (testing "shouldn't insert forks"
+      (is (=
+           [[:start :middle :middle :end]]
+           (-> (l/digraph)
+               (add-typed-edge :start :start :middle :middle)
+               (add-typed-edge :middle :middle :end :end)
+               (apply-rule [(-> (l/digraph)
+                                (add-typed-edge :start :start :middle :middle-2))
+                            (-> (l/digraph)
+                                (add-typed-edge :start :start :middle :middle-1)
+                                (add-typed-edge :middle :middle-1 :middle :middle-2))])
+               ->type-paths)
+           )))
+
     (testing "should allow wildcard "
       (println "this test")
       (is (=

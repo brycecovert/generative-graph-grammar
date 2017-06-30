@@ -53,28 +53,32 @@
    :add-task [(-> (l/digraph)
                   (add-typed-edge :task 1 :task 2))
               (-> (l/digraph)
-                  (add-typed-edge :task 1 :task 2)
-                  (add-typed-edge :task 2 :task 3))]
+                  (add-typed-edge :task 1 :task 3)
+                  (add-typed-edge :task 3 :task 2))]
 
    ;; rule 1
    :generate-lock [(-> (l/digraph)
-                       (add-typed-edge nil 1 :task 2))
+                       (add-typed-edge nil 1 :task 2)
+                       (add-typed-edge :task 2 nil 4))
                    (-> (l/digraph)
                        (add-typed-edge nil 1 :key 3)
                        (add-typed-edge nil 1 :lock 2)
-                       (add-typed-edge :key 3 :lock 2))]
+                       (add-typed-edge :key 3 :lock 2)
+                       (add-typed-edge :lock 2 nil 4))]
 
 
    ;; rule 2
    :move-lock [(-> (l/digraph)
                    (add-typed-edge nil 1 :lock 4)
                    (add-typed-edge nil 2 nil 3)
-                   (add-typed-edge nil 3 :lock 4))
+                   (add-typed-edge nil 3 :lock 4)
+                   (add-typed-edge :lock 4 nil 5))
                (-> (l/digraph)
                    (add-typed-edge nil 1 :lock 4)
                    (add-typed-edge nil 2 nil 3)
                    (add-typed-edge nil 2 :lock 4)
-                   (add-typed-edge nil 3 :lock 4))]
+                   (add-typed-edge nil 3 :lock 4)
+                   (add-typed-edge :lock 4 nil 5))]
 
 
    ;; rule 4
@@ -114,7 +118,7 @@
 
 (def recipe [[[:initial] 1 1]
              [[:add-task] 1 5]
-             [[:generate-lock :move-lock :move-key :duplicate-key :duplicate-lock] 10 15]])
+             [[:generate-lock :move-lock :move-key :duplicate-lock :duplicate-key] 30 40]])
 
 
 
@@ -204,12 +208,9 @@
    (l/edges output-graph)))
 
 (defn remove-edges-from-input [graph input target-ids]
-  (let [result (->> (l/edges input)
-                    (map (fn [[from to]] (doto [(target-ids from) (target-ids to)] println)))
-                    (apply l/remove-edges graph))]
-    (println (l/edges result))
-    result)
-
+  (->> (l/edges input)
+       (map (fn [[from to]] [(target-ids from) (target-ids to)]))
+       (apply l/remove-edges graph)) 
   )
 
 (defn apply-rule [graph [input output]]
