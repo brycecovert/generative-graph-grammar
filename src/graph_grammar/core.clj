@@ -203,17 +203,6 @@
    graph
    (l/edges output-graph)))
 
-(defn add-edges-from-old-nodes [graph output-graph target-ids original-graph]
-  (let [source-ids (into {} (map (fn [[from to]] [to from]) target-ids))
-        original-edges (->> (l/nodes original-graph)
-                            (filter (set (vals target-ids)))
-                            (filter (set (l/nodes output-graph))) ;; IS THIS RIGHT?
-                            ;; Seems like always false
-                            (mapcat #(map (fn [s] [(source-ids %) s]) (l/successors original-graph %)))
-                            #_(filter (complement (comp (set (l/nodes output-graph)) second))))]
-    (println "original edges" original-edges)
-    (apply l/add-edges graph original-edges)))
-
 (defn remove-edges-from-input [graph input target-ids]
   (let [result (->> (l/edges input)
                     (map (fn [[from to]] (doto [(target-ids from) (target-ids to)] println)))
@@ -232,7 +221,6 @@
                            (l/nodes output))]
       (-> graph
           (add-nodes-from-output-graph output target-ids)
-
           (remove-edges-from-input input target-ids)
           (add-edges-from-output-graph output target-ids)))
     graph))

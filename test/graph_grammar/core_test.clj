@@ -197,5 +197,4 @@
                (add-typed-node :end 2)
                (l/add-edges [1 2])
                (apply-rule ?->end==>?->middle->end)
-               ->type-paths)
-           )))))
+               ->type-paths))))))
